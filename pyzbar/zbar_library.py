@@ -2,6 +2,7 @@
 """
 import platform
 import sys
+import os
 
 from ctypes import cdll
 from ctypes.util import find_library
@@ -57,13 +58,28 @@ def load():
         try:
             dependencies, libzbar = load_objects(Path(''))
         except OSError:
-            dependencies, libzbar = load_objects(Path(__file__).parent)
+            env_path = os.environ.get("PYZBAR_LIBRARY")
+            if env_path:
+                dependencies, libzbar = load_objects(Path(env_path).parent)
+            else:
+                dependencies, libzbar = load_objects(Path(__file__).parent)
     else:
-        # Assume a shared library on the path
-        path = find_library('zbar')
-        if not path:
-            raise ImportError('Unable to find zbar shared library')
-        libzbar = cdll.LoadLibrary(path)
+        # Attempt to load from PYZBAR_LIBRARY if set.
+        libzbar = None
+        env_path = os.environ.get("PYZBAR_LIBRARY")
+        if env_path:
+            try:
+                libzbar = cdll.LoadLibrary(env_path)
+            except OSError:
+                # If loading via PYZBAR_LIBRARY fails, fall back to find_library.
+                pass
+
+        if not libzbar:
+            # Fallback to the standard method using find_library.
+            path = find_library('zbar')
+            if not path:
+                raise ImportError('Unable to find zbar shared library')
+            libzbar = cdll.LoadLibrary(path)
         dependencies = []
 
     return libzbar, dependencies
