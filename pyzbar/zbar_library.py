@@ -58,7 +58,11 @@ def load():
         try:
             dependencies, libzbar = load_objects(Path(''))
         except OSError:
-            dependencies, libzbar = load_objects(Path(__file__).parent)
+            env_path = os.environ.get("PYZBAR_LIBRARY")
+            if env_path:
+                dependencies, libzbar = load_objects(Path(env_path).parent)
+            else:
+                dependencies, libzbar = load_objects(Path(__file__).parent)
     else:
         # Attempt to load from PYZBAR_LIBRARY if set.
         libzbar = None
